@@ -1,39 +1,15 @@
 <?php
-require_once 's.php';
-$pdo = new PDO($sql_param_1, $sql_param_2, $sql_param_3);
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+  require_once 's.php';
+  $pdo = new PDO($sql_param_1, $sql_param_2, $sql_param_3);
+  $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$title = '';
-$description = '';
-$price = '';
-$errors = [];
-
-if ($_SERVER["REQUEST_METHOD"] === 'POST') {
-    $title = $_POST['title'];
-    $description = $_POST['description'];
-    $price = $_POST['price'];
-    $date = date('Y-m-d H:i:s');
-    
-    $image = $_FILES['image'] ?? null;
-    $image_path = '';
-
-    if (!is_dir("images")) 
-    {
-        mkdir("images");
-    }
-    if ($image && $image['tmp_name']) {
-        $image_path = 'images/'.randomString(10).'/'.$image["name"];
-        mkdir(dirname($image_path));
-        move_uploaded_file($image['tmp_name'], $image_path);
-    }
-
-    if (empty($title)) {
-        $errors[] = "Please inform title";
-    }
-    if (empty($price)) {
-        $errors[] = "Please inform price";
-    }
-    if (empty($errors)) {
+  $id = $_GET['id'] ?? null;
+  if (!$id) {
+    Header("Location: index.php");
+    exit;
+  }
+  $statement = $pdo->prepare("SELECT * FROM products WHERE product_id = :id");
+  $statement->bindValue(":id", $id);
         $statement = $pdo->prepare("
             INSERT INTO products (title, image, description, price, create_date) 
             VALUES (:title, :image, :description, :price, :date)
@@ -46,10 +22,15 @@ if ($_SERVER["REQUEST_METHOD"] === 'POST') {
         $statement->bindValue(':date', $date);
         $statement->execute();
         header("Location: index.php");
-    }
-}
+  $statement->execute();
+  $product = $statement->fetch(PDO::FETCH_ASSOC);
 
+  $title = $product['title'];
+  $description = $product['description'];
+  $price = $product['price'];
+  
 ?>
+  
 
 <!doctype html>
 <html lang="en">
@@ -67,7 +48,10 @@ if ($_SERVER["REQUEST_METHOD"] === 'POST') {
 
 <body>
     <div class="container">
-        <h1>Create Product</h1>
+    <p>
+      <a href="index.php" class="btn btn-secondary">Go back to products</a>
+    </p>
+        <h1>Update Product</h1>
         <?php if (!empty($errors)) : ?>
             <div class="alert alert-danger">
                 <?php foreach ($errors as $error) : ?>
@@ -76,6 +60,10 @@ if ($_SERVER["REQUEST_METHOD"] === 'POST') {
             </div>
         <?php endif; ?>
         <form action="" method="post" enctype="multipart/form-data">
+            <?php if (!empty($product['image'])): ?>
+              <img class="update-image"src="<?php echo $product['image'] ?>" alt="<?php echo $product['title'] ?>" >
+            <?php endif; ?>
+    
             <div class="mb-3">
                 <label class="form-label">Product image</label><br>
                 <input type="file" name="image">
@@ -98,3 +86,4 @@ if ($_SERVER["REQUEST_METHOD"] === 'POST') {
 </body>
 
 </html>
+?>

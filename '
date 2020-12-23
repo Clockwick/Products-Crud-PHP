@@ -1,13 +1,23 @@
 <?php
-require_once 's.php';
-$pdo = new PDO($sql_param_1, $sql_param_2, $sql_param_3);
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+  require_once 's.php';
+  $pdo = new PDO($sql_param_1, $sql_param_2, $sql_param_3);
+  $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$title = '';
-$description = '';
-$price = '';
-$errors = [];
+  $id = $_GET['id'] ?? null;
+  if (!$id) {
+    Header("Location: index.php");
+    exit;
+  }
+  $statement = $pdo->prepare("SELECT * FROM products WHERE product_id = :id");
+  $statement->bindValue(":id", $id);
+  $statement->execute();
+  $product = $statement->fetch(PDO::FETCH_ASSOC);
 
+  $title = $product['title'];
+  $description = $product['description'];
+  $price = $product['price'];
+  
+  
 if ($_SERVER["REQUEST_METHOD"] === 'POST') {
     $title = $_POST['title'];
     $description = $_POST['description'];
@@ -67,6 +77,9 @@ if ($_SERVER["REQUEST_METHOD"] === 'POST') {
 
 <body>
     <div class="container">
+    <p>
+      <a href="index.php" class="btn btn-secondary">Go back to products</a>
+    </p>
         <h1>Create Product</h1>
         <?php if (!empty($errors)) : ?>
             <div class="alert alert-danger">
@@ -76,6 +89,10 @@ if ($_SERVER["REQUEST_METHOD"] === 'POST') {
             </div>
         <?php endif; ?>
         <form action="" method="post" enctype="multipart/form-data">
+            <?php if (!empty($product['image'])): ?>
+              <img class="update-image"src="<?php echo $product['image'] ?>" alt="<?php echo $product['title'] ?>" >
+            <?php endif; ?>
+    
             <div class="mb-3">
                 <label class="form-label">Product image</label><br>
                 <input type="file" name="image">
@@ -98,3 +115,4 @@ if ($_SERVER["REQUEST_METHOD"] === 'POST') {
 </body>
 
 </html>
+?>
