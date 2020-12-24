@@ -10,27 +10,62 @@
   }
   $statement = $pdo->prepare("SELECT * FROM products WHERE product_id = :id");
   $statement->bindValue(":id", $id);
-        $statement = $pdo->prepare("
-            INSERT INTO products (title, image, description, price, create_date) 
-            VALUES (:title, :image, :description, :price, :date)
-        ");
-
-        $statement->bindValue(':title', $title);
-        $statement->bindValue(':image', $image_path);
-        $statement->bindValue(':description', $description);
-        $statement->bindValue(':price', $price);
-        $statement->bindValue(':date', $date);
-        $statement->execute();
-        header("Location: index.php");
   $statement->execute();
   $product = $statement->fetch(PDO::FETCH_ASSOC);
 
   $title = $product['title'];
   $description = $product['description'];
   $price = $product['price'];
+  $image = $product['image'] ?? null;
+  $image_path = '';
   
+  
+    
+  if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $title = $_POST['title'];
+    $description = $_POST['description'];
+    $price = $_POST['price'];
+    
+
+    if (!is_dir("images")) 
+    {
+        mkdir("images");
+    }
+
+    if (empty($title)) {
+        $errors[] = "Please inform title";
+    }
+    if (empty($price)) {
+        $errors[] = "Please inform price";
+    }
+    if (empty($errors)) {
+        $image = $_FILES['image'] ?? null;
+        $image_path = $product['image'];
+
+        if ($image && $image['tmp_name']) {
+            if ($product['image']) {
+              unlink($product['image']);
+            }
+            $image_path = 'images/'.randomString(10).'/'.$image["name"];
+            mkdir(dirname($image_path));
+            move_uploaded_file($image['tmp_name'], $image_path);
+        }
+        $statement = $pdo->prepare("
+            UPDATE products SET title = :title, image = :image, description = :description, price = :price WHERE product_id = :id
+        ");
+        
+        $statement->bindValue(':title', $title);
+        $statement->bindValue(':image', $image_path);
+        $statement->bindValue(':description', $description);
+        $statement->bindValue(':price', $price);
+        $statement->bindValue(':id', $id);
+        $statement->execute();
+        header("Location: index.php");
+    }
+  }
+
+
 ?>
-  
 
 <!doctype html>
 <html lang="en">
@@ -51,7 +86,7 @@
     <p>
       <a href="index.php" class="btn btn-secondary">Go back to products</a>
     </p>
-        <h1>Update Product</h1>
+    <h1>Update Product <?php echo $product['title'] ?></h1>
         <?php if (!empty($errors)) : ?>
             <div class="alert alert-danger">
                 <?php foreach ($errors as $error) : ?>
@@ -80,7 +115,7 @@
                 <label class="form-label">Product price</label>
                 <input type="number" step=".01" min="0.01" class="form-control" name="price" value="<?php echo $price ?>">
             </div>
-            <button type="submit" class="btn btn-outline-primary">Create products</button>
+            <button type="submit" class="btn btn-outline-success">Update products</button>
         </form>
     </div>
 </body>
